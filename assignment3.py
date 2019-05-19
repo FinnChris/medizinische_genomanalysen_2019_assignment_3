@@ -2,8 +2,9 @@
 
 import vcf
 import httplib2
+import json
 
-__author__ = 'XXX'
+__author__ = 'Christian Jansen'
 
 
 ##
@@ -25,7 +26,7 @@ class Assignment3:
         print("PyVCF version: %s" % vcf.VERSION)
         
         ## Call annotate_vcf_file here
-        self.vcf_path = ""  # TODO
+        self.vcf_path = "chr16.vcf"
 
     def annotate_vcf_file(self):
         '''
@@ -34,7 +35,7 @@ class Assignment3:
         - Store the result in a data structure
         :return:
         '''    
-        print("TODO")
+        #print("TODO")
                 
         ##
         ## Example loop
@@ -61,44 +62,93 @@ class Assignment3:
         annotation_result = con.decode('utf-8')
         
         ## TODO now do something with the 'annotation_result'
-        
+
         ##
         ## End example code
         ##
-        
-        return None  ## return the data structure here
+        annotation_result_dict = json.loads(annotation_result)
+        #for i,line in enumerate(annotation_result_dict):
+            #print(line)
+            #if i > 10:
+            #    break
+            #if 'notfound' not in line.keys():
+            #    print(line)
+
+
+        #for index, line in enumerate(annotation_result):
+        #    print("line ", index,": ",line)
+        #    if index > 50:
+        #        break
+
+        return annotation_result_dict
     
     
-    def get_list_of_genes(self):
+    def get_list_of_genes(self, annot_dict):
         '''
         Print the name of genes in the annotation data set
         :return:
         '''
-        print("TODO")
+        genenames = set([])
+        for item in annot_dict:
+            if 'notfound' not in item.keys():
+                if 'dbnsfp' in item:
+                    if 'genename' in item['dbnsfp']:
+                        genenames.add(item['dbnsfp']['genename'])
+                if 'snpeff' in item:
+                    for annot in item['snpeff']['ann']:
+                        if isinstance(annot, dict):
+                            genenames.add(annot['genename'])
+                if 'cadd' in item:
+                    if 'gene' in item['cadd']:
+                        for annot in item['cadd']['gene']:
+                            if 'genename' in annot:
+                                if isinstance(annot, dict):
+                                    genenames.add(annot['genename'])
+
+        return genenames
     
     
-    def get_num_variants_modifier(self):
+    def get_num_variants_modifier(self, annot_dict):
         '''
         Print the number of variants with putative_impact "MODIFIER"
         :return:
         '''
-        print("TODO")
+        var_modified = 0
+        for item in annot_dict:
+            if 'snpeff' in item:
+                for annot in item['snpeff']['ann']:
+                    if isinstance(annot, dict):
+                        if annot['putative_impact'] == 'MODIFIER':
+                            var_modified += 1
+                            break
+        return var_modified
         
     
-    def get_num_variants_with_mutationtaster_annotation(self):
+    def get_num_variants_with_mutationtaster_annotation(self,annot_dict):
         '''
         Print the number of variants with a 'mutationtaster' annotation
         :return:
         '''
-        print("TODO")
+        mut_tast = 0
+        for item in annot_dict:
+            if 'dbnsfp' in item:
+                if 'mutationstaster' in item['dbnsfp']:
+                    mut_tast += 1
+        return mut_tast
+
         
     
-    def get_num_variants_non_synonymous(self):
+    def get_num_variants_non_synonymous(self,annot_dict):
         '''
         Print the number of variants with 'consequence' 'NON_SYNONYMOUS'
         :return:
         '''
-        print("TODO")
+        not_syn = 0
+        for item in annot_dict:
+            if 'cadd' in item:
+                if item['cadd']['consequence'] == 'NON_SYNONYMOUS':
+                    not_syn += 1
+        return not_syn
         
     
     def view_vcf_in_browser(self):
@@ -109,12 +159,17 @@ class Assignment3:
         '''
    
         ## Document the final URL here
-        print("TODO")
+        print("URL for vcf in ibio: https://vcf.iobio.io/?species=Human&build=GRCh38")
             
     
     def print_summary(self):
-        self.annotate_vcf_file()
-        print("Print all results here")
+        annotation = self.annotate_vcf_file()
+        print("Gene List: ", self.get_list_of_genes(annotation))
+        print("Number of variant MODIFIER: ",self.get_num_variants_modifier(annotation))
+        print("Mutationstaster annotation: ", self.get_num_variants_with_mutationtaster_annotation(annotation))
+        print("Number of non synonymous variants: ", self.get_num_variants_non_synonymous(annotation))
+        self.view_vcf_in_browser()
+        #print("Print all results here")
     
     
 def main():
